@@ -9,10 +9,7 @@ class Timer {
 public:
     Timer();
 
-    /// Returns time since creation or last step() in seconds.
-    float step();
-
-    /// Returns time since creation or last step() in seconds.
+    /// Returns time since creation.
     float elapsed() const;
 
 private:
