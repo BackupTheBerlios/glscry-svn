@@ -10,7 +10,7 @@ using namespace std;
 
 void output(ostream& os, const char* name, const char* label, Uint64 value) {
     os << value << " ";
-    cout << name << ": " << value << " " << label << endl;
+    cout << "    " << name << ": " << value << " " << label << endl;
 }
 
 void pumpMessages() {
@@ -58,6 +58,8 @@ void runTest(ostream& os, int triangleCount, float runFor = 0.2f) {
             glEnd();
 
             triangles += triangleCount;
+
+            pumpMessages();
         }
         glFinish();
 
@@ -84,6 +86,8 @@ void runTest(ostream& os, int triangleCount, float runFor = 0.2f) {
         while (timer.elapsed() < runFor) {
             glCallList(list);
             triangles += triangleCount;
+
+            pumpMessages();
         }
         glFinish();
 
@@ -241,10 +245,13 @@ int main(int argc, char** argv) {
     SDL_ShowCursor(SDL_DISABLE);
 
     ofstream of("results.data");
-    for (int i = 0; i <= 24; ++i) {
-        cout << "Running with triangle count of " << (1 << i) << endl;
+    for (int i = 0; i <= 14; ++i) {
+        cout << "Running tests with batch size of " << (1 << i) << " triangles" << endl;
         runTest(of, 1 << i);
     }
+
+    // I guess gcc needs this...  otherwise it returns 3.  o_O
+    return EXIT_SUCCESS;
 }
 
 
