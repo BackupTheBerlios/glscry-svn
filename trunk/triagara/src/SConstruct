@@ -1,0 +1,2 @@
+env = Environment(tools=['default', 'SDL', 'OpenGL'], toolpath=['toolspec'])
+env.Program('triagara', 'Main.cpp')
