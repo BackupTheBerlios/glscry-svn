@@ -61,7 +61,7 @@ public:
             return false;
         }
         // It's too bad there's not an integer version of pow().
-        out = static_cast<size_t>(pow(_power, _current));
+        out = static_cast<size_t>(pow(double(_power), double(_current)));
         _current += 1;
         return true;
     }

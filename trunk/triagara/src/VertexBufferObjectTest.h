@@ -21,7 +21,7 @@ public:
     }
 
     bool supported() const {
-        return GLEW_ARB_vertex_buffer_object;
+        return GLEW_ARB_vertex_buffer_object != 0;
     }
 
     void setup() {

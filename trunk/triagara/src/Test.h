@@ -104,7 +104,7 @@ public:
                         _test->getStateSet()->reset();
                     }
                 }
-                catch (const std::exception& e) {
+                catch (const std::exception& /*e*/) {
                     // nothing
                 }
             }

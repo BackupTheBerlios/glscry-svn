@@ -19,7 +19,7 @@ public:
     }
 
     bool supported() const {
-        return GLEW_EXT_compiled_vertex_array;
+        return GLEW_EXT_compiled_vertex_array != 0;
     }
 
     void setup() {
