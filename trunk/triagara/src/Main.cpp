@@ -73,7 +73,7 @@ int main(int argc, char** argv) {
 
     // If we set this before opening the window, the window has
     // this caption.
-    SDL_WM_SetCaption("Empyrean", 0);
+    SDL_WM_SetCaption("Triagara", 0);
 
     /**
      * @note SDL does silly things when the created window is larger
