@@ -1,2 +1,6 @@
 env = Environment(tools=['default', 'SDL', 'OpenGL'], toolpath=['toolspec'])
-env.Program('triagara', 'Main.cpp')
+
+if env['PLATFORM'] in ['cygwin', 'win32']:
+    env.Append(CPPDEFINES=['WIN32', '_WIN32'])
+
+env.Program('triagara', ['Main.cpp'])
