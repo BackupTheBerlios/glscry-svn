@@ -10,10 +10,14 @@ TRIAGARA_BEGIN_NAMESPACE
 
 class TextureUploadTest : public Test {
 public:
-    int getWidth() const       { return _width; }
+    int getWidth() const       { return _width;  }
     void setWidth(int width)   { _width = width; }
-    int getHeight() const      { return _height; }
+
+    int getHeight() const      { return _height;   }
     void setHeight(int height) { _height = height; }
+
+    int getType() const    { return _type; }
+    void setType(int type) { _type = type; }
 
     virtual const char* name() const {
         return "TextureUploadTest";
@@ -36,11 +40,12 @@ public:
         // Should add a way to test 1D and 3D textures.
         glBindTexture(GL_TEXTURE_2D, _texture);
 
-        _buffer.resize(_width * _height * 4);
+        _buffer.resize(_width * _height * 4 * getTypeSize());
 
         // This call really needs to be customizable.
         glTexImage2D(GL_TEXTURE_2D, 0, 4, _width, _height, 0, GL_RGBA,
-                     GL_UNSIGNED_BYTE, &_buffer[0]);
+                     _type, &_buffer[0]);
+
         results[0] += _width * _height;
         results[1] += _buffer.size();
     }
@@ -50,10 +55,27 @@ public:
     }
 
 private:
-    Inited<int, 256> _width;
-    Inited<int, 256> _height;
+    int getTypeSize() const {
+        switch (_type.get()) {
+            case GL_UNSIGNED_BYTE:  return sizeof(GLubyte);
+            case GL_BYTE:           return sizeof(GLbyte);
+//            case GL_BITMAP: ??
+            case GL_UNSIGNED_SHORT: return sizeof(GLushort);
+            case GL_SHORT:          return sizeof(GLshort);
+            case GL_UNSIGNED_INT:   return sizeof(GLuint);
+            case GL_INT:            return sizeof(GLint);
+            case GL_FLOAT:          return sizeof(GLfloat);
+            default: assert(false && "Invalid type");
+        }
+    }
+
+    Inited<int, 256>              _width;
+    Inited<int, 256>              _height;
+    //Inited<int, GL_RGBA>          _format;
+    Inited<int, GL_UNSIGNED_BYTE> _type;
 
     GLuint _texture;
+    // This might need to be aligned in some way.  Keep an eye out.
     std::vector<unsigned char> _buffer;
 };
 

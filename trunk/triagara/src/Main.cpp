@@ -179,10 +179,28 @@ void runTexUploadTests() {
     TextureUploadTest* test2 = new TextureUploadTest;
     test2->setWidth(512);
     test2->setHeight(512);
+    TextureUploadTest* test3 = new TextureUploadTest;
+    test3->setType(GL_BYTE);
+    TextureUploadTest* test4 = new TextureUploadTest;
+    test4->setType(GL_UNSIGNED_SHORT);
+    TextureUploadTest* test5 = new TextureUploadTest;
+    test5->setType(GL_SHORT);
+    TextureUploadTest* test6 = new TextureUploadTest;
+    test6->setType(GL_UNSIGNED_INT);
+    TextureUploadTest* test7 = new TextureUploadTest;
+    test7->setType(GL_INT);
+    TextureUploadTest* test8 = new TextureUploadTest;
+    test8->setType(GL_FLOAT);
 
     std::vector<Test*> testList;
     testList.push_back(test1);
     testList.push_back(test2);
+    testList.push_back(test3);
+    testList.push_back(test4);
+    testList.push_back(test5);
+    testList.push_back(test6);
+    testList.push_back(test7);
+    testList.push_back(test8);
 
     runTests("upload.data", testList, 1.0f, "PixelRate");
 }
@@ -237,9 +255,9 @@ void run() {
 
     SDL_ShowCursor(SDL_DISABLE);
 
-    runGeometryTests("zeroes.data",          Zeroes(),         0, 14);
-    runGeometryTests("small_triangles.data", SmallTriangles(), 0, 14);
-    runPixelTests();
+    //runGeometryTests("zeroes.data",          Zeroes(),         0, 14);
+    //runGeometryTests("small_triangles.data", SmallTriangles(), 0, 14);
+    //runPixelTests();
     runTexUploadTests();
 }
 
