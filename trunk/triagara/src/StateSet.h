@@ -14,7 +14,7 @@ TRIAGARA_BEGIN_NAMESPACE
 
 class StateSet {
 public:
-    void addState(State* state) {
+    void setState(State* state) {
         _states[typeid(*state)] = state;
     }
 

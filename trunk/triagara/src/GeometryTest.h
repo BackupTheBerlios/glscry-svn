@@ -3,6 +3,7 @@
 
 
 #include "Base.h"
+#include "GeometryGenerator.h"
 #include "Test.h"
 
 
@@ -39,7 +40,7 @@ protected:
     }
 
 private:
-    Zeroed<size_t> _batchSize;
+    Inited<size_t, 4096> _batchSize;
 
     const GeometryGenerator* _generator;
     std::vector<Triangle> _triangleBuffer;

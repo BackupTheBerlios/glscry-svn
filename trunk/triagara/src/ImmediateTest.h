@@ -3,6 +3,7 @@
 
 
 #include "GeometryTest.h"
+#include "GLUtility.h"
 
 
 TRIAGARA_BEGIN_NAMESPACE

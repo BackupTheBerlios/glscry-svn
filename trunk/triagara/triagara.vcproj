@@ -20,7 +20,7 @@
 				Name="VCCLCompilerTool"
 				Optimization="0"
 				AdditionalIncludeDirectories="third-party/all;third-party/vc7/include"
-				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE;GLEW_STATIC"
+				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE;GLEW_STATIC;BOOST_PYTHON_STATIC_LIB"
 				MinimalRebuild="TRUE"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="3"
@@ -29,12 +29,12 @@
 				UsePrecompiledHeader="0"
 				WarningLevel="3"
 				Detect64BitPortabilityProblems="FALSE"
-				DebugInformationFormat="4"/>
+				DebugInformationFormat="3"/>
 			<Tool
 				Name="VCCustomBuildTool"/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="OpenGL32.lib GLU32.lib SDL.lib SDLmain.lib"
+				AdditionalDependencies="OpenGL32.lib GLU32.lib SDL.lib SDLmain.lib libboost_python-vc71-mt-gd.lib"
 				OutputFile="$(OutDir)/triagara.exe"
 				LinkIncremental="2"
 				AdditionalLibraryDirectories="third-party/vc7/lib"
@@ -72,7 +72,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				AdditionalIncludeDirectories="third-party/all;third-party/vc7/include"
-				PreprocessorDefinitions="WIN32;NDEBUG;_CONSOLE;GLEW_STATIC"
+				PreprocessorDefinitions="WIN32;NDEBUG;_CONSOLE;GLEW_STATIC;BOOST_PYTHON_STATIC_LIB"
 				RuntimeLibrary="2"
 				ForceConformanceInForLoopScope="FALSE"
 				RuntimeTypeInfo="TRUE"
@@ -84,7 +84,7 @@
 				Name="VCCustomBuildTool"/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="OpenGL32.lib GLU32.lib SDL.lib SDLmain.lib"
+				AdditionalDependencies="OpenGL32.lib GLU32.lib SDL.lib SDLmain.lib libboost_python-vc71-mt.lib"
 				OutputFile="$(OutDir)/triagara.exe"
 				LinkIncremental="1"
 				AdditionalLibraryDirectories="third-party/vc7/lib"
@@ -186,7 +186,13 @@
 				RelativePath=".\src\StateSet.h">
 			</File>
 			<File
+				RelativePath=".\src\Test.cpp">
+			</File>
+			<File
 				RelativePath=".\src\Test.h">
+			</File>
+			<File
+				RelativePath=".\src\TextureUploadTest.cpp">
 			</File>
 			<File
 				RelativePath=".\src\TextureUploadTest.h">

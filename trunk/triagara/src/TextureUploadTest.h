@@ -10,6 +10,8 @@ TRIAGARA_BEGIN_NAMESPACE
 
 class TextureUploadTest : public Test {
 public:
+    static void bind();
+
     int getWidth() const       { return _width;  }
     void setWidth(int width)   { _width = width; }
 
@@ -65,7 +67,7 @@ private:
             case GL_UNSIGNED_INT:   return sizeof(GLuint);
             case GL_INT:            return sizeof(GLint);
             case GL_FLOAT:          return sizeof(GLfloat);
-            default: assert(false && "Invalid type");
+            default: assert(false && "Invalid type"); return 0;
         }
     }
 

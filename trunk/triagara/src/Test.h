@@ -3,7 +3,9 @@
 
 
 #include <string>
+#include "glew.h"
 #include "Base.h"
+#include "Context.h"
 #include "StateSet.h"
 #include "Timer.h"
 
@@ -68,9 +70,14 @@ private:
 };
 
 
+class Test;
+
+
 class Test {
 public:
     virtual ~Test() { }
+
+    static void bind();
 
     // Public interface.
 
@@ -78,50 +85,11 @@ public:
         return _stateSet;
     }
 
-    void addState(State* state) {
-        getStateSet().addState(state);
+    void setState(State* state) {
+        getStateSet().setState(state);
     }
 
-    ResultSet run(float runFor) {
-        // Handles calling teardown() on exit in an exception-safe way.
-        class RunSentry {
-            Test* _test;
-        public:
-            RunSentry(Test* test): _test(test) {
-                _test->getStateSet().apply();
-                _test->setup();
-            }
-            ~RunSentry() {
-                try {
-                    _test->teardown();
-                    _test->getStateSet().reset();
-                }
-                catch (const std::exception& /*e*/) {
-                    // nothing
-                }
-            }
-        } sentry__(this);
-
-        std::vector<ResultDesc> descs;
-        getResultDescs(descs);
-        ResultSet results(descs.size());
-
-        // Don't bother timing setup and teardown.
-        glFinish();
-
-        Timer timer;
-        while (timer.elapsed() < runFor) {
-            iterate(results);
-            pumpMessages();
-        }
-        glFinish();
-
-        // timer.elapsed() is evaluated before RunSentry is destroyed.
-        results.normalize(timer.elapsed());
-
-        return results;
-    }
-
+    ResultSet run(float runFor);
     
 
     // Overridden methods.
