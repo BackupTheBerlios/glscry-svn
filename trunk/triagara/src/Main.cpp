@@ -3,10 +3,11 @@
 #include <string>
 #include <SDL.h>
 #include "glew.h"
+#include "Timer.h"
 
 
 void runTest() {
-    Uint32 now = SDL_GetTicks();
+    Timer timer;
 
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
@@ -20,13 +21,11 @@ void runTest() {
     }
     glEnd();
 
-    Uint32 step1 = SDL_GetTicks();
-    std::cout << "Rendering: " << step1 - now << " ms" << std::endl;
+    std::cout << "Rendering: " << timer.step() << " s" << std::endl;
 
     SDL_GL_SwapBuffers();
 
-    Uint32 step2 = SDL_GetTicks();
-    std::cout << "Flipping: " << step2 - step1 << " ms" << std::endl;
+    std::cout << "Flipping: " << timer.step() << " s" << std::endl;
 }
 
 

@@ -4,4 +4,8 @@ if env['PLATFORM'] in ['cygwin', 'win32']:
     env.Append(CPPDEFINES=['WIN32', '_WIN32'])
 
 env.Append(CPPDEFINES=['GLEW_STATIC'])
-env.Program('triagara', ['Main.cpp', 'glew.c'])
+env.Program('triagara', Split("""
+    Main.cpp
+    glew.c
+    Timer.cpp
+"""))
