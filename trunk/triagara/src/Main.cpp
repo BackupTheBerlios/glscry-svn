@@ -1,3 +1,4 @@
+#include <fstream>
 #include <iostream>
 #include <stdexcept>
 #include <string>
@@ -5,77 +6,129 @@
 #include <SDL.h>
 #include "glew.h"
 #include "Timer.h"
+using namespace std;
 
-const int triangleCount = 65536;
-const float runFor = 5.0f;
+void output(ostream& os, const char* name, const char* label, Uint64 value) {
+    os << value << " ";
+    cout << name << ": " << value << " " << label << endl;
+}
 
-void runTest() {
+void pumpMessages() {
+    SDL_Event event;
+    int result = SDL_PollEvent(&event);
+    while (result == 1) {
+        if (event.type == SDL_QUIT) {
+            exit(EXIT_FAILURE);
+        }
+
+        result = SDL_PollEvent(&event);
+    }
+}
+
+void flip() {
+    SDL_GL_SwapBuffers();
+}
+
+void betweenTests() {
+    glClear(GL_COLOR_BUFFER_BIT);
+    pumpMessages();
+    flip();
+}
+
+void runTest(ostream& os, int triangleCount, float runFor = 0.2f) {
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
-    glOrtho(0, 1, 1, 0, -1, 1);
+    glOrtho(0, 1024, 768, 0, -1, 1);
 
-    Timer timer;
-    Uint64 triangles = 0;
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
 
-    glBegin(GL_TRIANGLES);
-    while (timer.elapsed() < runFor) {
-        glVertex2f(0, 0);
-        glVertex2f(0, 0);
-        glVertex2f(0, 0);
-        ++triangles;
+    betweenTests();
+
+    {
+        Uint64 triangles = 0;
+        Timer timer;
+        while (timer.elapsed() < runFor) {
+            glBegin(GL_TRIANGLES);
+            for (int i = 0; i < triangleCount; ++i) {
+                glVertex2f(0, 0);
+                glVertex2f(1, 0);
+                glVertex2f(1, 1);
+            }
+            glEnd();
+
+            triangles += triangleCount;
+        }
+        glFinish();
+
+        output(os, "Immediate", "tri/s", Uint64(triangles / timer.elapsed()));
     }
-    glEnd();
-    glFinish();
 
-    std::cout << "Immediate: " << Uint64(triangles / runFor) << " tri/s" << std::endl;
+    betweenTests();
 
-    GLuint list = glGenLists(1);
-    glNewList(list, GL_COMPILE);
-    glBegin(GL_TRIANGLES);
+    {
+        GLuint list = glGenLists(1);
+        glNewList(list, GL_COMPILE);
+        glBegin(GL_TRIANGLES);
+        for (int i = 0; i < triangleCount; ++i) {
+            glVertex2f(0, 0);
+            glVertex2f(1, 0);
+            glVertex2f(1, 1);
+        }
+        glEnd();
+        glEndList();
+
+        Uint64 triangles = 0;
+
+        Timer timer;
+        while (timer.elapsed() < runFor) {
+            glCallList(list);
+            triangles += triangleCount;
+        }
+        glFinish();
+
+        output(os, "Display List", "tri/s", Uint64(triangles / timer.elapsed()));
+
+        glDeleteLists(list, 1);
+    }
+
+    betweenTests();
+
+/*
+    vector<float> vertexArray(2 * 3 * triangleCount);
     for (int i = 0; i < triangleCount; ++i) {
-        glVertex2f(0, 0);
-        glVertex2f(0, 0);
-        glVertex2f(0, 0);
+        vertexArray[i * 6 + 0 + 0] = 0;
+        vertexArray[i * 6 + 0 + 1] = 0;
+        vertexArray[i * 6 + 1 + 0] = 1;
+        vertexArray[i * 6 + 1 + 1] = 0;
+        vertexArray[i * 6 + 2 + 0] = 1;
+        vertexArray[i * 6 + 2 + 1] = 1;
     }
-    glEnd();
-    glEndList();
-    glDeleteLists(list, 1);
 
-    timer.step();
-    triangles = 0;
-    while (timer.elapsed() < runFor) {
-        glCallList(list);
-        triangles += triangleCount;
-    }
-    glFinish();
-
-    std::cout << "Display List: " << Uint64(triangles / runFor) << " tri/s" << std::endl;
-
-    std::vector<float> vertexArray(3 * triangleCount);
     glEnableClientState(GL_VERTEX_ARRAY);
-    glVertexPointer(3, GL_FLOAT, 0, &vertexArray[0]);
+    glVertexPointer(2, GL_FLOAT, 0, &vertexArray[0]);
 
     timer.step();
     triangles = 0;
     while (timer.elapsed() < runFor) {
-        glDrawArrays(GL_TRIANGLES, 0, triangleCount);
+        glDrawArrays(GL_TRIANGLES, 0, triangleCount * 3);
         triangles += triangleCount;
     }
     glFinish();
 
     glDisableClientState(GL_VERTEX_ARRAY);
 
-    std::cout << "Vertex Arrays: " << Uint64(triangles / runFor) << " tri/s" << std::endl;
+    output(os, "Vertex Arrays", "tri/s", Uint64(triangles / runFor));
 
     if (GLEW_EXT_compiled_vertex_array) {
         glEnableClientState(GL_VERTEX_ARRAY);
-        glVertexPointer(3, GL_FLOAT, 0, &vertexArray[0]);
+        glVertexPointer(2, GL_FLOAT, 0, &vertexArray[0]);
         glLockArraysEXT(0, triangleCount);
 
         timer.step();
         triangles = 0;
         while (timer.elapsed() < runFor) {
-            glDrawArrays(GL_TRIANGLES, 0, triangleCount);
+            glDrawArrays(GL_TRIANGLES, 0, triangleCount * 3);
             triangles += triangleCount;
         }
         glFinish();
@@ -83,9 +136,9 @@ void runTest() {
         glUnlockArraysEXT();
         glDisableClientState(GL_VERTEX_ARRAY);
 
-        std::cout << "Compiled Vertex Arrays: " << Uint64(triangles / runFor) << " tri/s" << std::endl;
+        output(os, "Compiled Vertex Arrays", "tri/s", Uint64(triangles / runFor));
     } else {
-        std::cout << "Compiled Vertex Array extension not found." << std::endl;
+        output(os, "Compiled Vertex Arrays", "tri/s", 0);
     }
 
     if (GLEW_ARB_vertex_buffer_object) {
@@ -101,12 +154,12 @@ void runTest() {
 
         glEnableClientState(GL_VERTEX_ARRAY);
         glBindBufferARB(GL_ARRAY_BUFFER_ARB, buffer);
-        glVertexPointer(3, GL_FLOAT, 0, NULL);
+        glVertexPointer(2, GL_FLOAT, 0, NULL);
 
         timer.step();
         triangles = 0;
         while (timer.elapsed() < runFor) {
-            glDrawArrays(GL_TRIANGLES, 0, triangleCount);
+            glDrawArrays(GL_TRIANGLES, 0, triangleCount * 3);
             triangles += triangleCount;
         }
         glFinish();
@@ -115,15 +168,13 @@ void runTest() {
         glBindBufferARB(GL_ARRAY_BUFFER_ARB, 0);
 
         glDeleteBuffersARB(1, &buffer);
-        std::cout << "Vertex Buffer Objects: " << Uint64(triangles / runFor) << " tri/s" << std::endl;
+        output(os, "Vertex Buffer Objects", "tri/s", Uint64(triangles / runFor));
     } else {
-        std::cout << "Vertex Buffer Object extension not found." << std::endl;
+        output(os, "Vertex Buffer Objects", "tri/s", 0);
     }
+*/
 
-    timer.step();
-    SDL_GL_SwapBuffers();
-
-    std::cout << "Flipping: " << timer.step() << " s" << std::endl;
+    os << endl;
 }
 
 
@@ -135,8 +186,8 @@ void quitSDL() {
     SDL_Quit();
 }
 
-void throwSDLError(const std::string& prefix) {
-    throw std::runtime_error(prefix + ": " + SDL_GetError());
+void throwSDLError(const string& prefix) {
+    throw runtime_error(prefix + ": " + SDL_GetError());
 }
 
 void initializeSDL(int initflags) {
@@ -146,8 +197,8 @@ void initializeSDL(int initflags) {
     atexit(quitSDL);
 }
 
-void throwGLEWError(const std::string& prefix, GLenum error) {
-    throw std::runtime_error(
+void throwGLEWError(const string& prefix, GLenum error) {
+    throw runtime_error(
         prefix + ": " +
         reinterpret_cast<const char*>(glewGetErrorString(error)));
 }
@@ -189,7 +240,11 @@ int main(int argc, char** argv) {
 
     SDL_ShowCursor(SDL_DISABLE);
 
-    runTest();
+    ofstream of("results.data");
+    for (int i = 0; i <= 24; ++i) {
+        cout << "Running with triangle count of " << (1 << i) << endl;
+        runTest(of, 1 << i);
+    }
 }
 
 

@@ -3,6 +3,9 @@ env = Environment(tools=['default', 'SDL', 'OpenGL'], toolpath=['toolspec'])
 if env['PLATFORM'] in ['cygwin', 'win32']:
     env.Append(CPPDEFINES=['WIN32', '_WIN32'])
 
+if env.subst('$CC') == 'gcc':
+    env.Append(CCFLAGS=['-O2'])
+
 env.Append(CPPDEFINES=['GLEW_STATIC'])
 env.Program('triagara', Split("""
     Main.cpp
