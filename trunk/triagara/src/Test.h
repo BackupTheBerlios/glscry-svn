@@ -70,20 +70,16 @@ private:
 
 class Test {
 public:
-    Test() {
-        _stateSet = 0;
-    }
-
     virtual ~Test() { }
 
     // Public interface.
 
-    void setStateSet(StateSet* stateSet) {
-        _stateSet = stateSet;
+    StateSet& getStateSet() {
+        return _stateSet;
     }
 
-    StateSet* getStateSet() const {
-        return _stateSet;
+    void addState(State* state) {
+        getStateSet().addState(state);
     }
 
     ResultSet run(float runFor) {
@@ -92,17 +88,13 @@ public:
             Test* _test;
         public:
             RunSentry(Test* test): _test(test) {
-                if (_test->getStateSet()) {
-                    _test->getStateSet()->apply();
-                }
+                _test->getStateSet().apply();
                 _test->setup();
             }
             ~RunSentry() {
                 try {
                     _test->teardown();
-                    if (_test->getStateSet()) {
-                        _test->getStateSet()->reset();
-                    }
+                    _test->getStateSet().reset();
                 }
                 catch (const std::exception& /*e*/) {
                     // nothing
@@ -147,7 +139,7 @@ public:
     virtual void teardown() { }
 
 private:
-    StateSet* _stateSet;
+    StateSet _stateSet;
 };
 
 TRIAGARA_END_NAMESPACE

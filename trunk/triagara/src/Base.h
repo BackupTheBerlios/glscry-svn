@@ -2,6 +2,9 @@
 #define TRIAGARA_BASE_H
 
 
+#include <gmtl/gmtl.h>
+
+
 #define TRIAGARA_BEGIN_NAMESPACE namespace triagara {
 #define TRIAGARA_END_NAMESPACE   }
 
@@ -10,6 +13,9 @@
 
 
 TRIAGARA_BEGIN_NAMESPACE
+
+
+using gmtl::Vec4f;
 
 
 /**

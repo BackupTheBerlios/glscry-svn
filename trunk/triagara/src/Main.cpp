@@ -9,6 +9,7 @@
 #include "GeometryGenerator.h"
 #include "GeometryTest.h"
 #include "GLUtility.h"
+#include "LightState.h"
 #include "Range.h"
 #include "Test.h"
 
@@ -217,6 +218,25 @@ void testVertexCache() {
 }
 
 
+void testLights() {
+    std::vector<Test*> testList;
+    for (size_t i = 0; i < 8; ++i) {
+        LightState* light = new LightState;
+        for (size_t j = 0; j < i; ++j) {
+            light->useLight(j, true);
+            light->setAmbient(j, Vec4f(0.5f, 0.5f, 0.5f, 1.0f));
+        }
+        SmallTriangles gen;
+        GeometryTest* test = new VertexArrayTest(&gen);
+        test->setBatchSize(4096);
+        test->addState(light);
+        testList.push_back(test);
+    }
+
+    runTests("light.data", testList, 1.0f, "TriangleRate");
+}
+
+
 void setProjection() {
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
@@ -270,7 +290,8 @@ void run() {
     //testBatchSizes("small_triangles.data", SmallTriangles(), 0, 14);
     //testPixelTransfers();
     //testTextureUploads();
-    testVertexCache();
+    //testVertexCache();
+    testLights();
 }
 
 TRIAGARA_END_NAMESPACE
