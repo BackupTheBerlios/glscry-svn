@@ -21,7 +21,7 @@ if env.subst('$CC') == 'gcc':
     env.Append(CCFLAGS=['-O2', '-Wall'])
 
 env.Append(CPPDEFINES=['GLEW_STATIC'])
-env.SharedLibrary('../_triagara', Split("""
+env.SharedLibrary(File(env.subst('../_triagara$SHLIBSUFFIX')), Split("""
     Module.cpp
     glew.c
     Test.cpp
@@ -31,5 +31,6 @@ env.SharedLibrary('../_triagara', Split("""
 env.Program('../triagara', Split("""
     Main.cpp
     glew.c
+    Test.cpp
     Timer.cpp
 """))
