@@ -35,7 +35,7 @@ void betweenTests() {
     flip();
 }
 
-void runTest(ostream& os, int triangleCount, float runFor = 0.2f) {
+void runTest(ostream& os, int triangleCount, float runFor = 1.0f) {
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
     glOrtho(0, 1024, 768, 0, -1, 1);
@@ -98,39 +98,54 @@ void runTest(ostream& os, int triangleCount, float runFor = 0.2f) {
 
     betweenTests();
 
-/*
-    vector<float> vertexArray(2 * 3 * triangleCount);
-    for (int i = 0; i < triangleCount; ++i) {
-        vertexArray[i * 6 + 0 + 0] = 0;
-        vertexArray[i * 6 + 0 + 1] = 0;
-        vertexArray[i * 6 + 1 + 0] = 1;
-        vertexArray[i * 6 + 1 + 1] = 0;
-        vertexArray[i * 6 + 2 + 0] = 1;
-        vertexArray[i * 6 + 2 + 1] = 1;
+    {
+        vector<float> vertexArray(2 * 3 * triangleCount);
+        for (int i = 0; i < triangleCount; ++i) {
+            vertexArray[i * 6 + 0 + 0] = 0;
+            vertexArray[i * 6 + 0 + 1] = 0;
+            vertexArray[i * 6 + 1 + 0] = 1;
+            vertexArray[i * 6 + 1 + 1] = 0;
+            vertexArray[i * 6 + 2 + 0] = 1;
+            vertexArray[i * 6 + 2 + 1] = 1;
+        }
+
+        glEnableClientState(GL_VERTEX_ARRAY);
+        glVertexPointer(2, GL_FLOAT, 0, &vertexArray[0]);
+
+        Timer timer;
+        Uint64 triangles = 0;
+        while (timer.elapsed() < runFor) {
+            glDrawArrays(GL_TRIANGLES, 0, triangleCount * 3);
+            triangles += triangleCount;
+
+            pumpMessages();
+        }
+        glFinish();
+
+        glDisableClientState(GL_VERTEX_ARRAY);
+
+        output(os, "Vertex Arrays", "tri/s", Uint64(triangles / timer.elapsed()));
     }
 
-    glEnableClientState(GL_VERTEX_ARRAY);
-    glVertexPointer(2, GL_FLOAT, 0, &vertexArray[0]);
-
-    timer.step();
-    triangles = 0;
-    while (timer.elapsed() < runFor) {
-        glDrawArrays(GL_TRIANGLES, 0, triangleCount * 3);
-        triangles += triangleCount;
-    }
-    glFinish();
-
-    glDisableClientState(GL_VERTEX_ARRAY);
-
-    output(os, "Vertex Arrays", "tri/s", Uint64(triangles / runFor));
+    betweenTests();
 
     if (GLEW_EXT_compiled_vertex_array) {
+        vector<float> vertexArray(2 * 3 * triangleCount);
+        for (int i = 0; i < triangleCount; ++i) {
+            vertexArray[i * 6 + 0 + 0] = 0;
+            vertexArray[i * 6 + 0 + 1] = 0;
+            vertexArray[i * 6 + 1 + 0] = 1;
+            vertexArray[i * 6 + 1 + 1] = 0;
+            vertexArray[i * 6 + 2 + 0] = 1;
+            vertexArray[i * 6 + 2 + 1] = 1;
+        }
+
         glEnableClientState(GL_VERTEX_ARRAY);
         glVertexPointer(2, GL_FLOAT, 0, &vertexArray[0]);
         glLockArraysEXT(0, triangleCount);
 
-        timer.step();
-        triangles = 0;
+        Timer timer;
+        Uint64 triangles = 0;
         while (timer.elapsed() < runFor) {
             glDrawArrays(GL_TRIANGLES, 0, triangleCount * 3);
             triangles += triangleCount;
@@ -140,11 +155,12 @@ void runTest(ostream& os, int triangleCount, float runFor = 0.2f) {
         glUnlockArraysEXT();
         glDisableClientState(GL_VERTEX_ARRAY);
 
-        output(os, "Compiled Vertex Arrays", "tri/s", Uint64(triangles / runFor));
+        output(os, "Compiled Vertex Arrays", "tri/s", Uint64(triangles / timer.elapsed()));
     } else {
         output(os, "Compiled Vertex Arrays", "tri/s", 0);
     }
 
+/*
     if (GLEW_ARB_vertex_buffer_object) {
         GLuint buffer;
         glGenBuffersARB(1, &buffer);
