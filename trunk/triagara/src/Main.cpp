@@ -10,6 +10,7 @@
 #include "GeometryTest.h"
 #include "GLUtility.h"
 #include "Test.h"
+#include "TextureUploadTest.h"
 #include "Timer.h"
 
 #include "CopyPixelTest.h"
@@ -305,6 +306,34 @@ void runPixelTests(const std::string& filename, float runFor = 1.0f) {
 }
 
 
+void runTexUploadTests(const std::string& filename, float runFor = 1.0f) {
+    ofstream of(filename.c_str());
+    if (!of) {
+        throw std::runtime_error("Could not open " + filename);
+    }
+    ostream& os = of;
+
+    std::vector<Test*> testList;
+    testList.push_back(new TextureUploadTest);
+
+    for (size_t i = 0; i < testList.size(); ++i) {
+        betweenTests();
+
+        Test* test = testList[i];
+        if (test->supported()) {
+            Uint64 result = test->run(runFor);
+            output(os, test->name(), test->units(), result);
+        } else {
+            output(os, test->name(), test->units(), 0);
+        }
+    }
+    
+    for_each(testList.begin(), testList.end(), delete_function<Test>);
+
+    os << endl;    
+}
+
+
 void run() {
     initializeSDL(SDL_INIT_NOPARACHUTE | SDL_INIT_VIDEO | SDL_INIT_TIMER);
     
@@ -342,8 +371,8 @@ void run() {
 
     //runTestRange("zeroes.data",          Zeroes(),         0, 14);
     //runTestRange("small_triangles.data", SmallTriangles(), 0, 14);
-
-    runPixelTests("pixel.data");
+    //runPixelTests("pixel.data");
+    runTexUploadTests("upload.data");
 }
 
 TRIAGARA_END_NAMESPACE
@@ -372,8 +401,8 @@ int main(int /*argc*/, char** /*argv*/) {
     #include <windows.h>
 
     #ifdef __CYGWIN__
-    extern "C" int __argc;
-    extern "C" char* __argv[];
+    extern "C" __declspec(dllimport) int __argc;
+    extern "C" __declspec(dllimport) char* __argv[];
     #endif
 
     int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
