@@ -42,43 +42,70 @@ void betweenTests() {
     flip();
 }
 
-struct testImmediate {
-    static void run(ostream& os, const GeometryGenerator& gen,
-                    int triangleCount, float runFor) {
-        vector<Triangle> buffer;
-        gen.generate(buffer, triangleCount);
+struct Test {
+    virtual ~Test() { }
+
+    virtual bool supported() {
+        return true;
+    }
+
+    virtual const char* name() = 0;
+    virtual const char* units() { return "tri/s"; }
+
+    void generateTriangles(const GeometryGenerator& gen, size_t triangleCount) {
+        gen.generate(_triangleBuffer, triangleCount);
+    }
+
+    virtual void setup()    { }
+    virtual void teardown() { }
+    virtual Uint64 run(float runFor) = 0;
+
+protected:
+    const vector<Triangle>& getTriangleBuffer() const {
+        return _triangleBuffer;
+    }
+
+private:
+    vector<Triangle> _triangleBuffer;
+};
+
+struct ImmediateTest : public Test {
+    const char* name() { return "Immediate"; }
+
+    Uint64 run(float runFor) {
+        const vector<Triangle>& buffer = getTriangleBuffer();
 
         Uint64 triangles = 0;
         Timer timer;
         while (timer.elapsed() < runFor) {
             glBegin(GL_TRIANGLES);
-            for (int i = 0; i < triangleCount; ++i) {
+            for (size_t i = 0; i < buffer.size(); ++i) {
                 glVertex(buffer[i].v1);
                 glVertex(buffer[i].v2);
                 glVertex(buffer[i].v3);
             }
             glEnd();
 
-            triangles += triangleCount;
+            triangles += buffer.size();
 
             pumpMessages();
         }
         glFinish();
 
-        output(os, "Immediate", "tri/s", Uint64(triangles / timer.elapsed()));
+        return Uint64(triangles / timer.elapsed());
     }
 };
 
-struct testDisplayLists {
-    static void run(ostream& os, const GeometryGenerator& gen,
-                    int triangleCount, float runFor) {
-        vector<Triangle> buffer;
-        gen.generate(buffer, triangleCount);
+struct DisplayListTest : public Test {
+    const char* name() { return "Display List"; }
+
+    Uint64 run(float runFor) {
+        const vector<Triangle>& buffer = getTriangleBuffer();
 
         GLuint list = glGenLists(1);
         glNewList(list, GL_COMPILE);
         glBegin(GL_TRIANGLES);
-        for (int i = 0; i < triangleCount; ++i) {
+        for (size_t i = 0; i < buffer.size(); ++i) {
             glVertex(buffer[i].v1);
             glVertex(buffer[i].v2);
             glVertex(buffer[i].v3);
@@ -91,114 +118,133 @@ struct testDisplayLists {
         Timer timer;
         while (timer.elapsed() < runFor) {
             glCallList(list);
-            triangles += triangleCount;
+            triangles += buffer.size();
 
             pumpMessages();
         }
         glFinish();
 
-        output(os, "Display List", "tri/s", Uint64(triangles / timer.elapsed()));
+        return Uint64(triangles / timer.elapsed());
 
         glDeleteLists(list, 1);
     }
 };
 
-struct testVertexArrays {
-    static void run(ostream& os, const GeometryGenerator& gen,
-                    int triangleCount, float runFor) {
-        vector<Triangle> vertexArray;
-        gen.generate(vertexArray, triangleCount);
+struct VertexArrayTest : public Test {
+    const char* name() { return "Vertex Array"; }
+
+    Uint64 run(float runFor) {
+        const vector<Triangle>& buffer = getTriangleBuffer();
 
         glEnableClientState(GL_VERTEX_ARRAY);
-        glVertexPointer(vertexArray);
+        glVertexPointer(buffer);
 
         Timer timer;
         Uint64 triangles = 0;
         while (timer.elapsed() < runFor) {
-            glDrawArrays(GL_TRIANGLES, 0, triangleCount * 3);
-            triangles += triangleCount;
+            glDrawArrays(GL_TRIANGLES, 0, buffer.size() * 3);
+            triangles += buffer.size();
 
             pumpMessages();
         }
         glFinish();
 
-        output(os, "Vertex Arrays", "tri/s", Uint64(triangles / timer.elapsed()));
+        return Uint64(triangles / timer.elapsed());
 
         glDisableClientState(GL_VERTEX_ARRAY);
     }
 };
 
-struct testCompiledVertexArrays {
-    static void run(ostream& os, const GeometryGenerator& gen,
-                    int triangleCount, float runFor) {
-        if (GLEW_EXT_compiled_vertex_array) {
-            vector<Triangle> vertexArray;
-            gen.generate(vertexArray, triangleCount);
+struct CompiledVertexArrayTest : public Test {
+    bool supported() {
+        return GLEW_EXT_compiled_vertex_array;
+    }
 
-            glEnableClientState(GL_VERTEX_ARRAY);
-            glVertexPointer(vertexArray);
-            glLockArraysEXT(0, triangleCount);
+    const char* name() { return "Compiled Vertex Array"; }
 
-            Timer timer;
-            Uint64 triangles = 0;
-            while (timer.elapsed() < runFor) {
-                glDrawArrays(GL_TRIANGLES, 0, triangleCount * 3);
-                triangles += triangleCount;
-            }
-            glFinish();
+    Uint64 run(float runFor) {
+        const vector<Triangle>& buffer = getTriangleBuffer();
 
-            output(os, "Compiled Vertex Arrays", "tri/s", Uint64(triangles / timer.elapsed()));
+        glEnableClientState(GL_VERTEX_ARRAY);
+        glVertexPointer(buffer);
+        glLockArraysEXT(0, buffer.size());
 
-            glUnlockArraysEXT();
-            glDisableClientState(GL_VERTEX_ARRAY);
-        } else {
-            output(os, "Compiled Vertex Arrays", "tri/s", 0);
+        Timer timer;
+        Uint64 triangles = 0;
+        while (timer.elapsed() < runFor) {
+            glDrawArrays(GL_TRIANGLES, 0, buffer.size() * 3);
+            triangles += buffer.size();
         }
+        glFinish();
+
+        return Uint64(triangles / timer.elapsed());
+
+        glUnlockArraysEXT();
+        glDisableClientState(GL_VERTEX_ARRAY);
     }
 };
 
-struct testVertexBufferObjects {
-    static void run(ostream& os, const GeometryGenerator& gen,
-                    int triangleCount, float runFor) {
-        if (GLEW_ARB_vertex_buffer_object) {
-            vector<Triangle> vertexArray;
-            gen.generate(vertexArray, triangleCount);
 
-            GLuint buffer;
-            glGenBuffersARB(1, &buffer);
-            glBindBufferARB(GL_ARRAY_BUFFER_ARB, buffer);
+struct VertexBufferObjectTest : public Test {
+    bool supported() {
+        return GLEW_ARB_vertex_buffer_object;
+    }
 
-            glBufferDataARB(
-                GL_ARRAY_BUFFER_ARB,
-                vertexArray.size() * sizeof(vertexArray[0]),
-                &vertexArray[0],
-                GL_STATIC_DRAW_ARB);
+    const char* name() { return "Vertex Buffer Object"; }
 
-            glEnableClientState(GL_VERTEX_ARRAY);
-            glBindBufferARB(GL_ARRAY_BUFFER_ARB, buffer);
-            glVertexPointer(Triangle::Vector::Size,
-                            GLTypeConstant<Triangle::Vector::DataType>::Result,
-                            0, NULL);
+    Uint64 run(float runFor) {
+        const vector<Triangle>& vertexArray = getTriangleBuffer();
 
-            Timer timer;
-            Uint64 triangles = 0;
-            while (timer.elapsed() < runFor) {
-                glDrawArrays(GL_TRIANGLES, 0, triangleCount * 3);
-                triangles += triangleCount;
-                pumpMessages();
-            }
-            glFinish();
+        GLuint buffer;
+        glGenBuffersARB(1, &buffer);
+        glBindBufferARB(GL_ARRAY_BUFFER_ARB, buffer);
 
-            glDisableClientState(GL_VERTEX_ARRAY);
-            glBindBufferARB(GL_ARRAY_BUFFER_ARB, 0);
+        glBufferDataARB(
+            GL_ARRAY_BUFFER_ARB,
+            vertexArray.size() * sizeof(vertexArray[0]),
+            &vertexArray[0],
+            GL_STATIC_DRAW_ARB);
 
-            glDeleteBuffersARB(1, &buffer);
-            output(os, "Vertex Buffer Objects", "tri/s", Uint64(triangles / timer.elapsed()));
-        } else {
-            output(os, "Vertex Buffer Objects", "tri/s", 0);
+        glEnableClientState(GL_VERTEX_ARRAY);
+        glBindBufferARB(GL_ARRAY_BUFFER_ARB, buffer);
+        glVertexPointer(Triangle::Vector::Size,
+                        GLTypeConstant<Triangle::Vector::DataType>::Result,
+                        0, NULL);
+
+        Timer timer;
+        Uint64 triangles = 0;
+        while (timer.elapsed() < runFor) {
+            glDrawArrays(GL_TRIANGLES, 0, vertexArray.size() * 3);
+            triangles += vertexArray.size();
+            pumpMessages();
         }
+        glFinish();
+
+        glDisableClientState(GL_VERTEX_ARRAY);
+        glBindBufferARB(GL_ARRAY_BUFFER_ARB, 0);
+
+        glDeleteBuffersARB(1, &buffer);
+        return Uint64(triangles / timer.elapsed());
     }
 };
+
+void runTest(Test* test, std::ostream& os, const GeometryGenerator& gen,
+             int triangleCount, float runFor) {
+    if (test->supported()) {
+        test->generateTriangles(gen, triangleCount);
+        test->setup();
+        Uint64 result = test->run(runFor);
+        test->teardown();
+        output(os, test->name(), test->units(), result);
+    } else {
+        output(os, test->name(), test->units(), 0);
+    }
+}
+
+template<typename T>
+void delete_function(T* t) {
+    delete t;
+}
 
 void runTests(ostream& os, const GeometryGenerator& gen, int triangleCount,
               float runFor = 0.1f) {
@@ -212,17 +258,19 @@ void runTests(ostream& os, const GeometryGenerator& gen, int triangleCount,
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
 
-    betweenTests();
-    testImmediate::run(os, gen, triangleCount, runFor);
-    betweenTests();
-    testDisplayLists::run(os, gen, triangleCount, runFor);
-    betweenTests();
-    testVertexArrays::run(os, gen, triangleCount, runFor);
-    betweenTests();
-    testCompiledVertexArrays::run(os, gen, triangleCount, runFor);
-    betweenTests();
-    testVertexBufferObjects::run(os, gen, triangleCount, runFor);
-    betweenTests();
+    std::vector<Test*> testList;
+    testList.push_back(new ImmediateTest);
+    testList.push_back(new DisplayListTest);
+    testList.push_back(new VertexArrayTest);
+    testList.push_back(new CompiledVertexArrayTest);
+    testList.push_back(new VertexBufferObjectTest);
+
+    for (size_t i = 0; i < testList.size(); ++i) {
+        betweenTests();
+        runTest(testList[i], os, gen, triangleCount, runFor);
+    }
+    
+    for_each(testList.begin(), testList.end(), delete_function<Test>);
 
     os << endl;
 }
