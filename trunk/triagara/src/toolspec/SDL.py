@@ -8,7 +8,7 @@ def generate(env):
                    LIBPATH = os.path.join(prefix, 'lib'),
                    LIBS = ['SDL', 'SDLmain'])
     else:
-        env.ParseConfig(env, 'sdl-config --cflags --libs')
+        env.ParseConfig('sdl-config --cflags --libs')
 
 def exists(env):
     return env.WhereIs('sdl-config')
