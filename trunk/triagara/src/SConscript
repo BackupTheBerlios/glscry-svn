@@ -1,4 +1,9 @@
-env = Environment(tools=['default', 'SDL', 'OpenGL'], toolpath=['toolspec'])
+import os
+
+env = Environment(
+    ENV=os.environ,
+    tools=['default', 'SDL', 'OpenGL'],
+    toolpath=['toolspec'])
 
 if env['PLATFORM'] in ['cygwin', 'win32']:
     env.Append(CPPDEFINES=['WIN32', '_WIN32'])
