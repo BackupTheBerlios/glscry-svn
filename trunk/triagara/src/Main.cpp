@@ -4,11 +4,22 @@
 #include <string>
 #include <vector>
 #include <SDL.h>
+#include "Context.h"
 #include "glew.h"
 #include "GeometryGenerator.h"
+#include "GeometryTest.h"
 #include "GLUtility.h"
+#include "Test.h"
 #include "Timer.h"
+
+#include "CopyPixelTest.h"
+#include "DrawPixelTest.h"
+#include "ReadPixelTest.h"
+
 using namespace std;
+
+
+TRIAGARA_BEGIN_NAMESPACE
 
 const int    WIDTH  = 1024;
 const int    HEIGHT = 768;
@@ -18,18 +29,6 @@ const double FAR    = 1.0;
 void output(ostream& os, const char* name, const char* label, Uint64 value) {
     os << value << " ";
     cout << "    " << name << ": " << value << " " << label << endl;
-}
-
-void pumpMessages() {
-    SDL_Event event;
-    int result = SDL_PollEvent(&event);
-    while (result == 1) {
-        if (event.type == SDL_QUIT) {
-            exit(EXIT_FAILURE);
-        }
-
-        result = SDL_PollEvent(&event);
-    }
 }
 
 void flip() {
@@ -42,68 +41,36 @@ void betweenTests() {
     flip();
 }
 
-struct Test {
-    virtual ~Test() { }
+class ImmediateTest : public GeometryTest {
+public:
+    const char* name() const { return "Immediate"; }
 
-    virtual bool supported() {
-        return true;
-    }
-
-    virtual const char* name() = 0;
-    virtual const char* units() { return "tri/s"; }
-
-    void generateTriangles(const GeometryGenerator& gen, size_t triangleCount) {
-        gen.generate(_triangleBuffer, triangleCount);
-    }
-
-    virtual void setup()    { }
-    virtual void teardown() { }
-    virtual Uint64 run(float runFor) = 0;
-
-protected:
-    const vector<Triangle>& getTriangleBuffer() const {
-        return _triangleBuffer;
-    }
-
-private:
-    vector<Triangle> _triangleBuffer;
-};
-
-struct ImmediateTest : public Test {
-    const char* name() { return "Immediate"; }
-
-    Uint64 run(float runFor) {
+    Uint64 iterate() {
         const vector<Triangle>& buffer = getTriangleBuffer();
 
-        Uint64 triangles = 0;
-        Timer timer;
-        while (timer.elapsed() < runFor) {
-            glBegin(GL_TRIANGLES);
-            for (size_t i = 0; i < buffer.size(); ++i) {
-                glVertex(buffer[i].v1);
-                glVertex(buffer[i].v2);
-                glVertex(buffer[i].v3);
-            }
-            glEnd();
-
-            triangles += buffer.size();
-
-            pumpMessages();
+        glBegin(GL_TRIANGLES);
+        for (size_t i = 0; i < buffer.size(); ++i) {
+            glVertex(buffer[i].v1);
+            glVertex(buffer[i].v2);
+            glVertex(buffer[i].v3);
         }
-        glFinish();
+        glEnd();
 
-        return Uint64(triangles / timer.elapsed());
+        return buffer.size();
     }
 };
 
-struct DisplayListTest : public Test {
-    const char* name() { return "Display List"; }
+class DisplayListTest : public GeometryTest {
+    GLuint _list;
 
-    Uint64 run(float runFor) {
+public:
+    const char* name() const { return "Display List"; }
+
+    void setup() {
         const vector<Triangle>& buffer = getTriangleBuffer();
 
-        GLuint list = glGenLists(1);
-        glNewList(list, GL_COMPILE);
+        _list = glGenLists(1);
+        glNewList(_list, GL_COMPILE);
         glBegin(GL_TRIANGLES);
         for (size_t i = 0; i < buffer.size(); ++i) {
             glVertex(buffer[i].v1);
@@ -112,92 +79,86 @@ struct DisplayListTest : public Test {
         }
         glEnd();
         glEndList();
+    }
 
-        Uint64 triangles = 0;
+    Uint64 iterate() {
+        const vector<Triangle>& buffer = getTriangleBuffer();
 
-        Timer timer;
-        while (timer.elapsed() < runFor) {
-            glCallList(list);
-            triangles += buffer.size();
+        glCallList(_list);
+        return buffer.size();
+    }
 
-            pumpMessages();
-        }
-        glFinish();
-
-        return Uint64(triangles / timer.elapsed());
-
-        glDeleteLists(list, 1);
+    void teardown() {
+        glDeleteLists(_list, 1);
     }
 };
 
-struct VertexArrayTest : public Test {
-    const char* name() { return "Vertex Array"; }
+class VertexArrayTest : public GeometryTest {
+public:
+    const char* name() const { return "Vertex Array"; }
 
-    Uint64 run(float runFor) {
+    void setup() {
         const vector<Triangle>& buffer = getTriangleBuffer();
-
         glEnableClientState(GL_VERTEX_ARRAY);
         glVertexPointer(buffer);
+    }
 
-        Timer timer;
-        Uint64 triangles = 0;
-        while (timer.elapsed() < runFor) {
-            glDrawArrays(GL_TRIANGLES, 0, buffer.size() * 3);
-            triangles += buffer.size();
+    Uint64 iterate() {
+        const vector<Triangle>& buffer = getTriangleBuffer();
+        glDrawArrays(GL_TRIANGLES, 0, buffer.size() * 3);
+        return buffer.size();
+    }
 
-            pumpMessages();
-        }
-        glFinish();
-
-        return Uint64(triangles / timer.elapsed());
-
+    void teardown() {
         glDisableClientState(GL_VERTEX_ARRAY);
     }
 };
 
-struct CompiledVertexArrayTest : public Test {
-    bool supported() {
+class CompiledVertexArrayTest : public GeometryTest {
+public:
+    const char* name() const { return "Compiled Vertex Array"; }
+
+    bool supported() const {
         return GLEW_EXT_compiled_vertex_array;
     }
 
-    const char* name() { return "Compiled Vertex Array"; }
-
-    Uint64 run(float runFor) {
+    void setup() {
         const vector<Triangle>& buffer = getTriangleBuffer();
 
         glEnableClientState(GL_VERTEX_ARRAY);
         glVertexPointer(buffer);
         glLockArraysEXT(0, buffer.size());
+    }
 
-        Timer timer;
-        Uint64 triangles = 0;
-        while (timer.elapsed() < runFor) {
-            glDrawArrays(GL_TRIANGLES, 0, buffer.size() * 3);
-            triangles += buffer.size();
-        }
-        glFinish();
+    Uint64 iterate() {
+        const vector<Triangle>& buffer = getTriangleBuffer();
 
-        return Uint64(triangles / timer.elapsed());
+        glDrawArrays(GL_TRIANGLES, 0, buffer.size() * 3);
+        return buffer.size();
+    }
 
+    void teardown() {
         glUnlockArraysEXT();
         glDisableClientState(GL_VERTEX_ARRAY);
     }
 };
 
 
-struct VertexBufferObjectTest : public Test {
-    bool supported() {
+class VertexBufferObjectTest : public GeometryTest {
+    GLuint _buffer;
+
+public:
+    const char* name() const { return "Vertex Buffer Object"; }
+
+    bool supported() const {
         return GLEW_ARB_vertex_buffer_object;
     }
 
-    const char* name() { return "Vertex Buffer Object"; }
-
-    Uint64 run(float runFor) {
+    void setup() {
         const vector<Triangle>& vertexArray = getTriangleBuffer();
 
-        GLuint buffer;
-        glGenBuffersARB(1, &buffer);
-        glBindBufferARB(GL_ARRAY_BUFFER_ARB, buffer);
+        glGenBuffersARB(1, &_buffer);
+        glBindBufferARB(GL_ARRAY_BUFFER_ARB, _buffer);
 
         glBufferDataARB(
             GL_ARRAY_BUFFER_ARB,
@@ -206,35 +167,32 @@ struct VertexBufferObjectTest : public Test {
             GL_STATIC_DRAW_ARB);
 
         glEnableClientState(GL_VERTEX_ARRAY);
-        glBindBufferARB(GL_ARRAY_BUFFER_ARB, buffer);
+        glBindBufferARB(GL_ARRAY_BUFFER_ARB, _buffer);
         glVertexPointer(Triangle::Vector::Size,
                         GLTypeConstant<Triangle::Vector::DataType>::Result,
                         0, NULL);
+    }
 
-        Timer timer;
-        Uint64 triangles = 0;
-        while (timer.elapsed() < runFor) {
-            glDrawArrays(GL_TRIANGLES, 0, vertexArray.size() * 3);
-            triangles += vertexArray.size();
-            pumpMessages();
-        }
-        glFinish();
+    Uint64 iterate() {
+        const vector<Triangle>& vertexArray = getTriangleBuffer();
+        glDrawArrays(GL_TRIANGLES, 0, vertexArray.size() * 3);
+        return vertexArray.size();
+    }
 
+    void teardown() {
         glDisableClientState(GL_VERTEX_ARRAY);
         glBindBufferARB(GL_ARRAY_BUFFER_ARB, 0);
 
-        glDeleteBuffersARB(1, &buffer);
-        return Uint64(triangles / timer.elapsed());
+        glDeleteBuffersARB(1, &_buffer);
     }
 };
 
-void runTest(Test* test, std::ostream& os, const GeometryGenerator& gen,
+void runTest(GeometryTest* test, std::ostream& os,
+             const GeometryGenerator& gen,
              int triangleCount, float runFor) {
     if (test->supported()) {
         test->generateTriangles(gen, triangleCount);
-        test->setup();
         Uint64 result = test->run(runFor);
-        test->teardown();
         output(os, test->name(), test->units(), result);
     } else {
         output(os, test->name(), test->units(), 0);
@@ -258,7 +216,7 @@ void runTests(ostream& os, const GeometryGenerator& gen, int triangleCount,
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
 
-    std::vector<Test*> testList;
+    std::vector<GeometryTest*> testList;
     testList.push_back(new ImmediateTest);
     testList.push_back(new DisplayListTest);
     testList.push_back(new VertexArrayTest);
@@ -317,6 +275,36 @@ void runTestRange(const std::string& filename, const GeometryGenerator& gen,
 }
 
 
+void runPixelTests(const std::string& filename, float runFor = 1.0f) {
+    ofstream of(filename.c_str());
+    if (!of) {
+        throw std::runtime_error("Could not open " + filename);
+    }
+    ostream& os = of;
+
+    std::vector<Test*> testList;
+    testList.push_back(new CopyPixelTest);
+    testList.push_back(new DrawPixelTest);
+    testList.push_back(new ReadPixelTest);
+
+    for (size_t i = 0; i < testList.size(); ++i) {
+        betweenTests();
+
+        Test* test = testList[i];
+        if (test->supported()) {
+            Uint64 result = test->run(runFor);
+            output(os, test->name(), test->units(), result);
+        } else {
+            output(os, test->name(), test->units(), 0);
+        }
+    }
+    
+    for_each(testList.begin(), testList.end(), delete_function<Test>);
+
+    os << endl;    
+}
+
+
 void run() {
     initializeSDL(SDL_INIT_NOPARACHUTE | SDL_INIT_VIDEO | SDL_INIT_TIMER);
     
@@ -352,13 +340,18 @@ void run() {
 
     SDL_ShowCursor(SDL_DISABLE);
 
-    runTestRange("zeroes.data",          Zeroes().get(),         0, 14);
-    runTestRange("small_triangles.data", SmallTriangles().get(), 0, 14);
+    //runTestRange("zeroes.data",          Zeroes(),         0, 14);
+    //runTestRange("small_triangles.data", SmallTriangles(), 0, 14);
+
+    runPixelTests("pixel.data");
 }
+
+TRIAGARA_END_NAMESPACE
+
 
 int main(int /*argc*/, char** /*argv*/) {
     try {
-        run();
+        triagara::run();
         return EXIT_SUCCESS;
     }
     catch (const std::exception& e) {

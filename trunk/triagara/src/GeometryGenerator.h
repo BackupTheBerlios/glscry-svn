@@ -42,10 +42,6 @@ struct Triangle {
 
 
 struct GeometryGenerator {
-    GeometryGenerator& get() {
-        return *this;
-    }
-
     // Fills the buffer with 'count' triangles.
     virtual void generate(std::vector<Triangle>& buffer, size_t count) const = 0;
 };
