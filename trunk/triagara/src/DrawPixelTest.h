@@ -17,7 +17,7 @@ public:
         static const int width = 256;
         static const int height = 256;
         static char buffer[width * height * 4];
-        glDrawPixels(256, 256, GL_RGBA, GL_UNSIGNED_BYTE, buffer);
+        glDrawPixels(width, height, GL_RGBA, GL_UNSIGNED_BYTE, buffer);
         return width * height;
     }
 };
