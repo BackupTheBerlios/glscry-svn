@@ -117,29 +117,8 @@
 #define GLEW_WINGDIAPI_DEFINED
 #define WINGDIAPI __declspec(dllimport)
 #endif
-/* <ctype.h> */
-#if !defined(__CYGWIN__) && !defined(_WCHAR_T_DEFINED)
-#  ifndef _WCHAR_T_DEFINED
-     typedef unsigned short wchar_t;
-#    define _WCHAR_T_DEFINED
-#  endif
-#endif
-/* <stddef.h> */
-#if !defined(_W64)
-#  if !defined(__midl) && (defined(_X86_) || defined(_M_IX86)) && _MSC_VER >= 1300
-#    define _W64 __w64
-#  else
-#    define _W64
-#  endif
-#endif
-#ifndef _PTRDIFF_T_DEFINED
-#  ifdef  _WIN64
-typedef __int64 ptrdiff_t;
-#  else
-typedef _W64 int ptrdiff_t;
-#  endif
-#  define _PTRDIFF_T_DEFINED
-#endif
+#include <ctype.h>
+#include <stddef.h>
 
 #ifndef GLAPI
 #  if defined(__CYGWIN__) || defined(__MINGW32__)

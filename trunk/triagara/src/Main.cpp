@@ -2,7 +2,7 @@
 #include <stdexcept>
 #include <string>
 #include <SDL.h>
-#include <SDL_opengl.h>
+#include "glew.h"
 
 
 void runTest() {
@@ -49,6 +49,12 @@ void initializeSDL(int initflags) {
     atexit(quitSDL);
 }
 
+void throwGLEWError(const std::string& prefix, GLenum error) {
+    throw std::runtime_error(
+        prefix + ": " +
+        reinterpret_cast<const char*>(glewGetErrorString(error)));
+}
+
 int main(int argc, char** argv) {
     initializeSDL(SDL_INIT_NOPARACHUTE | SDL_INIT_VIDEO | SDL_INIT_TIMER);
     
@@ -77,6 +83,11 @@ int main(int argc, char** argv) {
     const int height = 768;
     if (!SDL_SetVideoMode(width, height, 32, mode)) {
         throwSDLError("Setting video mode failed");
+    }
+
+    GLenum glewError = glewInit();
+    if (glewError != GLEW_OK) {
+        throwGLEWError("Initializing GLEW failed", glewError);
     }
 
     SDL_ShowCursor(SDL_DISABLE);

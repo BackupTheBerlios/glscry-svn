@@ -3,4 +3,5 @@ env = Environment(tools=['default', 'SDL', 'OpenGL'], toolpath=['toolspec'])
 if env['PLATFORM'] in ['cygwin', 'win32']:
     env.Append(CPPDEFINES=['WIN32', '_WIN32'])
 
-env.Program('triagara', ['Main.cpp'])
+env.Append(CPPDEFINES=['GLEW_STATIC'])
+env.Program('triagara', ['Main.cpp', 'glew.c'])
