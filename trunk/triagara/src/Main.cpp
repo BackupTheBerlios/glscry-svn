@@ -158,7 +158,7 @@ void runGeometryTests(const std::string& filename, const GeometryGenerator& gen,
     testList.push_back(new CompiledVertexArrayTest(&gen));
     testList.push_back(new VertexBufferObjectTest(&gen));
 
-    Range& range = PowerRange(2, beginRange, endRange).get();
+    Range& range = PowerRange(beginRange, endRange).get();
     runTests(filename, testList, 0.2f, "TriangleRate",
              "BatchSize", range);
 }
