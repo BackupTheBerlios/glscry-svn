@@ -12,3 +12,9 @@ float Timer::step() {
     _last = now;
     return result;
 }
+
+
+float Timer::elapsed() const {
+    Uint32 now = SDL_GetTicks();
+    return (now - _last) / 1000.0f;
+}

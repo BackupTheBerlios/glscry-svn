@@ -1,28 +1,51 @@
 #include <iostream>
 #include <stdexcept>
 #include <string>
+#include <vector>
 #include <SDL.h>
 #include "glew.h"
 #include "Timer.h"
 
 
 void runTest() {
-    Timer timer;
-
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
     glOrtho(0, 1, 1, 0, -1, 1);
 
+    Timer timer;
+    Uint64 triangles = 0;
+    const float runFor = 5.0f;
+
     glBegin(GL_TRIANGLES);
-    for (Uint32 i = 0; i < 1000000; ++i) {
+    while (timer.elapsed() < runFor) {
         glVertex2f(0, 0);
         glVertex2f(0, 0);
         glVertex2f(0, 0);
+        ++triangles;
     }
     glEnd();
+    glFinish();
 
-    std::cout << "Rendering: " << timer.step() << " s" << std::endl;
+    std::cout << "Immediate: " << Uint64(triangles / runFor) << " tri/s" << std::endl;
 
+    const int triangleCount = 1024;
+    std::vector<float> vertexArray(3 * triangleCount);
+    glEnableClientState(GL_VERTEX_ARRAY);
+    glVertexPointer(3, GL_FLOAT, 0, &vertexArray[0]);
+
+    timer.step();
+    triangles = 0;
+    while (timer.elapsed() < runFor) {
+        glDrawArrays(GL_TRIANGLES, 0, triangleCount);
+        triangles += triangleCount;
+    }
+    glFinish();
+
+    glDisableClientState(GL_VERTEX_ARRAY);
+
+    std::cout << "Vertex Arrays: " << Uint64(triangles / runFor) << " tri/s" << std::endl;
+
+    timer.step();
     SDL_GL_SwapBuffers();
 
     std::cout << "Flipping: " << timer.step() << " s" << std::endl;
