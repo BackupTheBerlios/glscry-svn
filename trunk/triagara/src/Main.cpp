@@ -13,6 +13,7 @@
 #include "Test.h"
 
 #include "ImmediateTest.h"
+#include "IndexedGeometryTest.h"
 #include "DisplayListTest.h"
 #include "VertexArrayTest.h"
 #include "CompiledVertexArrayTest.h"
@@ -149,7 +150,7 @@ void throwGLEWError(const std::string& prefix, GLenum error) {
 }
 
 
-void runGeometryTests(const std::string& filename, const GeometryGenerator& gen,
+void testBatchSizes(const std::string& filename, const GeometryGenerator& gen,
                       int beginRange, int endRange) {
     std::vector<Test*> testList;
     testList.push_back(new ImmediateTest(&gen));
@@ -164,7 +165,7 @@ void runGeometryTests(const std::string& filename, const GeometryGenerator& gen,
 }
 
 
-void runPixelTests() {
+void testPixelTransfers() {
     std::vector<Test*> testList;
     testList.push_back(new CopyPixelTest);
     testList.push_back(new DrawPixelTest);
@@ -174,7 +175,7 @@ void runPixelTests() {
 }
 
 
-void runTexUploadTests() {
+void testTextureUploads() {
     TextureUploadTest* test1 = new TextureUploadTest;
     TextureUploadTest* test2 = new TextureUploadTest;
     test2->setWidth(512);
@@ -203,6 +204,16 @@ void runTexUploadTests() {
     testList.push_back(test8);
 
     runTests("upload.data", testList, 1.0f, "PixelRate");
+}
+
+
+void testVertexCache() {
+    Zeroes z;
+
+    std::vector<Test*> testList;
+    testList.push_back(new IndexedGeometryTest(&z));
+    runTests("vcache.data", testList, 1.0f, "TriangleRate",
+             "BatchSize", PowerRange(1, 16).get());
 }
 
 
@@ -255,10 +266,11 @@ void run() {
 
     SDL_ShowCursor(SDL_DISABLE);
 
-    //runGeometryTests("zeroes.data",          Zeroes(),         0, 14);
-    //runGeometryTests("small_triangles.data", SmallTriangles(), 0, 14);
-    //runPixelTests();
-    runTexUploadTests();
+    //testBatchSizes("zeroes.data",          Zeroes(),         0, 14);
+    //testBatchSizes("small_triangles.data", SmallTriangles(), 0, 14);
+    //testPixelTransfers();
+    //testTextureUploads();
+    testVertexCache();
 }
 
 TRIAGARA_END_NAMESPACE

@@ -19,7 +19,7 @@ public:
     int getType() const    { return _type; }
     void setType(int type) { _type = type; }
 
-    virtual const char* name() const {
+    const char* name() const {
         return "TextureUploadTest";
     }
 
