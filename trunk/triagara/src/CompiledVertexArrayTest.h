@@ -9,6 +9,11 @@ TRIAGARA_BEGIN_NAMESPACE
 
 class CompiledVertexArrayTest : public GeometryTest {
 public:
+    CompiledVertexArrayTest(const GeometryGenerator* gen)
+        : GeometryTest(gen)
+    {
+    }
+
     const char* name() const {
         return "Compiled Vertex Array";
     }

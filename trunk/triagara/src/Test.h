@@ -140,6 +140,8 @@ public:
 
     virtual void getResultDescs(std::vector<ResultDesc>& descs) = 0;
 
+    virtual void setProperty(const std::string& name, size_t value) { }
+
     virtual void setup()    { }
     virtual void iterate(ResultSet& results) = 0;
     virtual void teardown() { }

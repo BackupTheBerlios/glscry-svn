@@ -11,7 +11,7 @@ TRIAGARA_BEGIN_NAMESPACE
 class PixelTransferTest : public Test {
 public:
     TRIAGARA_BEGIN_RESULT_DESCS()
-      TRIAGARA_RESULT_DESC("PixelRate", "pixels/sec")
+        TRIAGARA_RESULT_DESC("PixelRate", "pixels/sec")
     TRIAGARA_END_RESULT_DESCS()
 };
 

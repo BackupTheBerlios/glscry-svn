@@ -11,6 +11,11 @@ class VertexBufferObjectTest : public GeometryTest {
     GLuint _buffer;
 
 public:
+    VertexBufferObjectTest(const GeometryGenerator* gen)
+        : GeometryTest(gen)
+    {
+    }
+
     const char* name() const {
         return "Vertex Buffer Object";
     }

@@ -10,6 +10,11 @@ TRIAGARA_BEGIN_NAMESPACE
 
 class ImmediateTest : public GeometryTest {
 public:
+    ImmediateTest(const GeometryGenerator* gen)
+        : GeometryTest(gen)
+    {
+    }
+
     const char* name() const {
         return "Immediate";
     }

@@ -9,6 +9,7 @@
 #include "GeometryGenerator.h"
 #include "GeometryTest.h"
 #include "GLUtility.h"
+#include "Range.h"
 #include "Test.h"
 
 #include "ImmediateTest.h"
@@ -67,7 +68,6 @@ void betweenTests() {
     flip();
 }
 
-
 void runTests(const std::string& filename, std::vector<Test*> testList,
               float runFor, const std::string& depVar) {
     
@@ -87,40 +87,39 @@ void runTests(const std::string& filename, std::vector<Test*> testList,
             // output a zero
         }
     }
-    
-    std::for_each(testList.begin(), testList.end(), delete_function<Test>);
-
     of << std::endl;
+    
+    std::for_each(testList.begin(), testList.end(), delete_function<Test>);
 }
 
 
-void runTest(GeometryTest* test, std::ostream& os,
-             const GeometryGenerator& gen,
-             int triangleCount, float runFor) {
-    if (test->supported()) {
-        test->generateTriangles(gen, triangleCount);
-        ResultSet results = test->run(runFor);
-        output(os, test, results, "TriangleRate");
+void runTests(const std::string& filename, std::vector<Test*> testList,
+              float runFor, const std::string& depVar,
+              const std::string& indVar, Range& range) {
+    
+    std::ofstream of(filename.c_str());
+    if (!of) {
+        throw std::runtime_error("Could not open " + filename);
     }
-}
 
-void runGeometryTests(std::ostream& os, const GeometryGenerator& gen,
-                      int triangleCount, float runFor = 0.1f) {
-    std::vector<GeometryTest*> testList;
-    testList.push_back(new ImmediateTest);
-    testList.push_back(new DisplayListTest);
-    testList.push_back(new VertexArrayTest);
-    testList.push_back(new CompiledVertexArrayTest);
-    testList.push_back(new VertexBufferObjectTest);
+    size_t indValue;
+    while (range.next(indValue)) {
+        for (size_t i = 0; i < testList.size(); ++i) {
+            betweenTests();
 
-    for (size_t i = 0; i < testList.size(); ++i) {
-        betweenTests();
-        runTest(testList[i], os, gen, triangleCount, runFor);
+            Test* test = testList[i];
+            test->setProperty(indVar, indValue);
+            if (test->supported()) {
+                ResultSet results = test->run(runFor);
+                output(of, test, results, depVar);
+            } else {
+                // output a zero
+            }
+        }
+        of << std::endl;
     }
     
     std::for_each(testList.begin(), testList.end(), delete_function<Test>);
-
-    os << std::endl;
 }
 
 
@@ -150,18 +149,18 @@ void throwGLEWError(const std::string& prefix, GLenum error) {
 }
 
 
-void runTestRange(const std::string& filename, const GeometryGenerator& gen,
-                  int beginRange, int endRange) {
-    std::ofstream of(filename.c_str());
-    if (!of) {
-        throw std::runtime_error("Could not open " + filename);
-    }
+void runGeometryTests(const std::string& filename, const GeometryGenerator& gen,
+                      int beginRange, int endRange) {
+    std::vector<Test*> testList;
+    testList.push_back(new ImmediateTest(&gen));
+    testList.push_back(new DisplayListTest(&gen));
+    testList.push_back(new VertexArrayTest(&gen));
+    testList.push_back(new CompiledVertexArrayTest(&gen));
+    testList.push_back(new VertexBufferObjectTest(&gen));
 
-    for (int i = beginRange; i <= endRange; ++i) {
-        std::cout << "Running tests with batch size of "
-                  << (1 << i) << " triangles" << std::endl;
-        runGeometryTests(of, gen, 1 << i);
-    }
+    Range& range = PowerRange(2, beginRange, endRange).get();
+    runTests(filename, testList, 0.2f, "TriangleRate",
+             "BatchSize", range);
 }
 
 
@@ -238,8 +237,8 @@ void run() {
 
     SDL_ShowCursor(SDL_DISABLE);
 
-    //runTestRange("zeroes.data",          Zeroes(),         0, 14);
-    //runTestRange("small_triangles.data", SmallTriangles(), 0, 14);
+    runGeometryTests("zeroes.data",          Zeroes(),         0, 14);
+    runGeometryTests("small_triangles.data", SmallTriangles(), 0, 14);
     runPixelTests();
     runTexUploadTests();
 }

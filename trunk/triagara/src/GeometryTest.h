@@ -14,16 +14,34 @@ public:
         TRIAGARA_RESULT_DESC("TriangleRate", "tri/s")
     TRIAGARA_END_RESULT_DESCS()
 
-    void generateTriangles(const GeometryGenerator& gen, size_t triangleCount) {
-        gen.generate(_triangleBuffer, triangleCount);
+    GeometryTest(const GeometryGenerator* gen) {
+        assert(gen);
+        _generator = gen;
+    }
+
+    void   setBatchSize(size_t size) { _batchSize = size; }
+    size_t getBatchSize() const      { return _batchSize; }
+
+    void setProperty(const std::string& name, size_t value) {
+        if (name == "BatchSize") {
+            setBatchSize(value);
+        } else {
+            assert(false && "Invalid Property Name");
+        }
     }
 
 protected:
-    const std::vector<Triangle>& getTriangleBuffer() const {
+    const std::vector<Triangle>& getTriangleBuffer() {
+        if (_batchSize != _triangleBuffer.size()) {
+            _generator->generate(_triangleBuffer, _batchSize);
+        }
         return _triangleBuffer;
     }
 
 private:
+    Zeroed<size_t> _batchSize;
+
+    const GeometryGenerator* _generator;
     std::vector<Triangle> _triangleBuffer;
 };
 

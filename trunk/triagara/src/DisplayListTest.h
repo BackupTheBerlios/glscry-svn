@@ -11,6 +11,11 @@ class DisplayListTest : public GeometryTest {
     GLuint _list;
 
 public:
+    DisplayListTest(const GeometryGenerator* gen)
+        : GeometryTest(gen)
+    {
+    }
+
     const char* name() const {
         return "Display List";
     }
