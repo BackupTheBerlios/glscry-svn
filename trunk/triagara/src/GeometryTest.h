@@ -10,11 +10,13 @@ TRIAGARA_BEGIN_NAMESPACE
 
 class GeometryTest : public Test {
 public:
+    TRIAGARA_BEGIN_RESULT_DESCS()
+        TRIAGARA_RESULT_DESC("TriangleRate", "tri/s")
+    TRIAGARA_END_RESULT_DESCS()
+
     void generateTriangles(const GeometryGenerator& gen, size_t triangleCount) {
         gen.generate(_triangleBuffer, triangleCount);
     }
-
-    const char* units() const { return "tri/s"; }
 
 protected:
     const std::vector<Triangle>& getTriangleBuffer() const {

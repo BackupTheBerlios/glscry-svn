@@ -10,7 +10,9 @@ TRIAGARA_BEGIN_NAMESPACE
 
 class PixelTransferTest : public Test {
 public:
-    const char* units() const { return "pixels/sec"; }
+    TRIAGARA_BEGIN_RESULT_DESCS()
+      TRIAGARA_RESULT_DESC("PixelRate", "pixels/sec")
+    TRIAGARA_END_RESULT_DESCS()
 };
 
 TRIAGARA_END_NAMESPACE

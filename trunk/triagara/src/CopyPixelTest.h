@@ -13,11 +13,11 @@ class CopyPixelTest : public PixelTransferTest {
 public:
     const char* name() const { return "CopyPixelTest"; }
 
-    Uint64 iterate() {
+    void iterate(ResultSet& results) {
         static const int width = 256;
         static const int height = 256;
         glCopyPixels(0, 0, width, height, GL_COLOR);
-        return width * height;
+        results[0] += width * height;
     }
 };
 

@@ -13,12 +13,12 @@ class DrawPixelTest : public PixelTransferTest {
 public:
     const char* name() const { return "DrawPixelTest"; }
 
-    Uint64 iterate() {
+    void iterate(ResultSet& results) {
         static const int width = 256;
         static const int height = 256;
         static char buffer[width * height * 4];
         glDrawPixels(width, height, GL_RGBA, GL_UNSIGNED_BYTE, buffer);
-        return width * height;
+        results[0] += width * height;
     }
 };
 

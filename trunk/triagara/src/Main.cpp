@@ -10,14 +10,18 @@
 #include "GeometryTest.h"
 #include "GLUtility.h"
 #include "Test.h"
-#include "TextureUploadTest.h"
-#include "Timer.h"
+
+#include "ImmediateTest.h"
+#include "DisplayListTest.h"
+#include "VertexArrayTest.h"
+#include "CompiledVertexArrayTest.h"
+#include "VertexBufferObjectTest.h"
 
 #include "CopyPixelTest.h"
 #include "DrawPixelTest.h"
 #include "ReadPixelTest.h"
 
-using namespace std;
+#include "TextureUploadTest.h"
 
 
 TRIAGARA_BEGIN_NAMESPACE
@@ -27,9 +31,30 @@ const int    HEIGHT = 768;
 const double NEAR   = -1.0;
 const double FAR    = 1.0;
 
-void output(ostream& os, const char* name, const char* label, Uint64 value) {
-    os << value << " ";
-    cout << "    " << name << ": " << value << " " << label << endl;
+void output(std::ostream& os, Test* test, const ResultSet& results,
+            const std::string& depVar) {
+    std::vector<ResultDesc> descs;
+    test->getResultDescs(descs);
+    assert(descs.size() == results.size());
+
+    int resultIndex = -1;
+    for (size_t i = 0; i < descs.size(); ++i) {
+        if (descs[i].name == depVar) {
+            resultIndex = i;
+            break;
+        }
+    }
+    if (resultIndex == -1) {
+        throw std::runtime_error("Test has no such result");
+    }
+    
+    os << results[resultIndex] << " ";
+
+    std::cout << "  " << test->name() << ": ";
+
+    std::cout << descs[resultIndex].name << " = "
+              << Uint64(results[resultIndex]) << " "
+              << descs[resultIndex].units << std::endl;
 }
 
 void flip() {
@@ -42,181 +67,45 @@ void betweenTests() {
     flip();
 }
 
-class ImmediateTest : public GeometryTest {
-public:
-    const char* name() const { return "Immediate"; }
 
-    Uint64 iterate() {
-        const vector<Triangle>& buffer = getTriangleBuffer();
+void runTests(const std::string& filename, std::vector<Test*> testList,
+              float runFor, const std::string& depVar) {
+    
+    std::ofstream of(filename.c_str());
+    if (!of) {
+        throw std::runtime_error("Could not open " + filename);
+    }
 
-        glBegin(GL_TRIANGLES);
-        for (size_t i = 0; i < buffer.size(); ++i) {
-            glVertex(buffer[i].v1);
-            glVertex(buffer[i].v2);
-            glVertex(buffer[i].v3);
+    for (size_t i = 0; i < testList.size(); ++i) {
+        betweenTests();
+
+        Test* test = testList[i];
+        if (test->supported()) {
+            ResultSet results = test->run(runFor);
+            output(of, test, results, depVar);
+        } else {
+            // output a zero
         }
-        glEnd();
-
-        return buffer.size();
     }
-};
+    
+    std::for_each(testList.begin(), testList.end(), delete_function<Test>);
 
-class DisplayListTest : public GeometryTest {
-    GLuint _list;
+    of << std::endl;
+}
 
-public:
-    const char* name() const { return "Display List"; }
-
-    void setup() {
-        const vector<Triangle>& buffer = getTriangleBuffer();
-
-        _list = glGenLists(1);
-        glNewList(_list, GL_COMPILE);
-        glBegin(GL_TRIANGLES);
-        for (size_t i = 0; i < buffer.size(); ++i) {
-            glVertex(buffer[i].v1);
-            glVertex(buffer[i].v2);
-            glVertex(buffer[i].v3);
-        }
-        glEnd();
-        glEndList();
-    }
-
-    Uint64 iterate() {
-        const vector<Triangle>& buffer = getTriangleBuffer();
-
-        glCallList(_list);
-        return buffer.size();
-    }
-
-    void teardown() {
-        glDeleteLists(_list, 1);
-    }
-};
-
-class VertexArrayTest : public GeometryTest {
-public:
-    const char* name() const { return "Vertex Array"; }
-
-    void setup() {
-        const vector<Triangle>& buffer = getTriangleBuffer();
-        glEnableClientState(GL_VERTEX_ARRAY);
-        glVertexPointer(buffer);
-    }
-
-    Uint64 iterate() {
-        const vector<Triangle>& buffer = getTriangleBuffer();
-        glDrawArrays(GL_TRIANGLES, 0, buffer.size() * 3);
-        return buffer.size();
-    }
-
-    void teardown() {
-        glDisableClientState(GL_VERTEX_ARRAY);
-    }
-};
-
-class CompiledVertexArrayTest : public GeometryTest {
-public:
-    const char* name() const { return "Compiled Vertex Array"; }
-
-    bool supported() const {
-        return GLEW_EXT_compiled_vertex_array;
-    }
-
-    void setup() {
-        const vector<Triangle>& buffer = getTriangleBuffer();
-
-        glEnableClientState(GL_VERTEX_ARRAY);
-        glVertexPointer(buffer);
-        glLockArraysEXT(0, buffer.size());
-    }
-
-    Uint64 iterate() {
-        const vector<Triangle>& buffer = getTriangleBuffer();
-
-        glDrawArrays(GL_TRIANGLES, 0, buffer.size() * 3);
-        return buffer.size();
-    }
-
-    void teardown() {
-        glUnlockArraysEXT();
-        glDisableClientState(GL_VERTEX_ARRAY);
-    }
-};
-
-
-class VertexBufferObjectTest : public GeometryTest {
-    GLuint _buffer;
-
-public:
-    const char* name() const { return "Vertex Buffer Object"; }
-
-    bool supported() const {
-        return GLEW_ARB_vertex_buffer_object;
-    }
-
-    void setup() {
-        const vector<Triangle>& vertexArray = getTriangleBuffer();
-
-        glGenBuffersARB(1, &_buffer);
-        glBindBufferARB(GL_ARRAY_BUFFER_ARB, _buffer);
-
-        glBufferDataARB(
-            GL_ARRAY_BUFFER_ARB,
-            vertexArray.size() * sizeof(vertexArray[0]),
-            &vertexArray[0],
-            GL_STATIC_DRAW_ARB);
-
-        glEnableClientState(GL_VERTEX_ARRAY);
-        glBindBufferARB(GL_ARRAY_BUFFER_ARB, _buffer);
-        glVertexPointer(Triangle::Vector::Size,
-                        GLTypeConstant<Triangle::Vector::DataType>::Result,
-                        0, NULL);
-    }
-
-    Uint64 iterate() {
-        const vector<Triangle>& vertexArray = getTriangleBuffer();
-        glDrawArrays(GL_TRIANGLES, 0, vertexArray.size() * 3);
-        return vertexArray.size();
-    }
-
-    void teardown() {
-        glDisableClientState(GL_VERTEX_ARRAY);
-        glBindBufferARB(GL_ARRAY_BUFFER_ARB, 0);
-
-        glDeleteBuffersARB(1, &_buffer);
-    }
-};
 
 void runTest(GeometryTest* test, std::ostream& os,
              const GeometryGenerator& gen,
              int triangleCount, float runFor) {
     if (test->supported()) {
         test->generateTriangles(gen, triangleCount);
-        Uint64 result = test->run(runFor);
-        output(os, test->name(), test->units(), result);
-    } else {
-        output(os, test->name(), test->units(), 0);
+        ResultSet results = test->run(runFor);
+        output(os, test, results, "TriangleRate");
     }
 }
 
-template<typename T>
-void delete_function(T* t) {
-    delete t;
-}
-
-void runTests(ostream& os, const GeometryGenerator& gen, int triangleCount,
-              float runFor = 0.1f) {
-    glMatrixMode(GL_PROJECTION);
-    glLoadIdentity();
-
-    // Is this right?
-    // glOrtho(0.5, WIDTH - 0.5, HEIGHT - 0.5, 0.5, NEAR, FAR);
-    glOrtho(0, WIDTH, HEIGHT, 0, NEAR, FAR);
-
-    glMatrixMode(GL_MODELVIEW);
-    glLoadIdentity();
-
+void runGeometryTests(std::ostream& os, const GeometryGenerator& gen,
+                      int triangleCount, float runFor = 0.1f) {
     std::vector<GeometryTest*> testList;
     testList.push_back(new ImmediateTest);
     testList.push_back(new DisplayListTest);
@@ -229,9 +118,9 @@ void runTests(ostream& os, const GeometryGenerator& gen, int triangleCount,
         runTest(testList[i], os, gen, triangleCount, runFor);
     }
     
-    for_each(testList.begin(), testList.end(), delete_function<Test>);
+    std::for_each(testList.begin(), testList.end(), delete_function<Test>);
 
-    os << endl;
+    os << std::endl;
 }
 
 
@@ -243,8 +132,8 @@ void quitSDL() {
     SDL_Quit();
 }
 
-void throwSDLError(const string& prefix) {
-    throw runtime_error(prefix + ": " + SDL_GetError());
+void throwSDLError(const std::string& prefix) {
+    throw std::runtime_error(prefix + ": " + SDL_GetError());
 }
 
 void initializeSDL(int initflags) {
@@ -254,8 +143,8 @@ void initializeSDL(int initflags) {
     atexit(quitSDL);
 }
 
-void throwGLEWError(const string& prefix, GLenum error) {
-    throw runtime_error(
+void throwGLEWError(const std::string& prefix, GLenum error) {
+    throw std::runtime_error(
         prefix + ": " +
         reinterpret_cast<const char*>(glewGetErrorString(error)));
 }
@@ -263,74 +152,52 @@ void throwGLEWError(const string& prefix, GLenum error) {
 
 void runTestRange(const std::string& filename, const GeometryGenerator& gen,
                   int beginRange, int endRange) {
-    ofstream of(filename.c_str());
+    std::ofstream of(filename.c_str());
     if (!of) {
         throw std::runtime_error("Could not open " + filename);
     }
 
     for (int i = beginRange; i <= endRange; ++i) {
-        cout << "Running tests with batch size of "
-             << (1 << i) << " triangles" << endl;
-        runTests(of, gen, 1 << i);
+        std::cout << "Running tests with batch size of "
+                  << (1 << i) << " triangles" << std::endl;
+        runGeometryTests(of, gen, 1 << i);
     }
 }
 
 
-void runPixelTests(const std::string& filename, float runFor = 1.0f) {
-    ofstream of(filename.c_str());
-    if (!of) {
-        throw std::runtime_error("Could not open " + filename);
-    }
-    ostream& os = of;
-
+void runPixelTests() {
     std::vector<Test*> testList;
     testList.push_back(new CopyPixelTest);
     testList.push_back(new DrawPixelTest);
     testList.push_back(new ReadPixelTest);
 
-    for (size_t i = 0; i < testList.size(); ++i) {
-        betweenTests();
-
-        Test* test = testList[i];
-        if (test->supported()) {
-            Uint64 result = test->run(runFor);
-            output(os, test->name(), test->units(), result);
-        } else {
-            output(os, test->name(), test->units(), 0);
-        }
-    }
-    
-    for_each(testList.begin(), testList.end(), delete_function<Test>);
-
-    os << endl;    
+    runTests("pixel.data", testList, 1.0f, "PixelRate");
 }
 
 
-void runTexUploadTests(const std::string& filename, float runFor = 1.0f) {
-    ofstream of(filename.c_str());
-    if (!of) {
-        throw std::runtime_error("Could not open " + filename);
-    }
-    ostream& os = of;
+void runTexUploadTests() {
+    TextureUploadTest* test1 = new TextureUploadTest;
+    TextureUploadTest* test2 = new TextureUploadTest;
+    test2->setWidth(512);
+    test2->setHeight(512);
 
     std::vector<Test*> testList;
-    testList.push_back(new TextureUploadTest);
+    testList.push_back(test1);
+    testList.push_back(test2);
 
-    for (size_t i = 0; i < testList.size(); ++i) {
-        betweenTests();
+    runTests("upload.data", testList, 1.0f, "PixelRate");
+}
 
-        Test* test = testList[i];
-        if (test->supported()) {
-            Uint64 result = test->run(runFor);
-            output(os, test->name(), test->units(), result);
-        } else {
-            output(os, test->name(), test->units(), 0);
-        }
-    }
-    
-    for_each(testList.begin(), testList.end(), delete_function<Test>);
 
-    os << endl;    
+void setProjection() {
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+
+    // Is this right?
+    glOrtho(0, WIDTH, HEIGHT, 0, NEAR, FAR);
+
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
 }
 
 
@@ -367,12 +234,14 @@ void run() {
         throwGLEWError("Initializing GLEW failed", glewError);
     }
 
+    setProjection();
+
     SDL_ShowCursor(SDL_DISABLE);
 
     //runTestRange("zeroes.data",          Zeroes(),         0, 14);
     //runTestRange("small_triangles.data", SmallTriangles(), 0, 14);
-    //runPixelTests("pixel.data");
-    runTexUploadTests("upload.data");
+    runPixelTests();
+    runTexUploadTests();
 }
 
 TRIAGARA_END_NAMESPACE
@@ -384,7 +253,7 @@ int main(int /*argc*/, char** /*argv*/) {
         return EXIT_SUCCESS;
     }
     catch (const std::exception& e) {
-        cout << "Exception: " << e.what() << endl;
+        std::cout << "Exception: " << e.what() << std::endl;
     }
 #if 0
     catch (...) {
